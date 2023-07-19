@@ -30,10 +30,6 @@ void compactFloat(float value, byte *buffer) {
   // Converte o valor para 2 bytes
   buffer[0] = (byte)(scaledValue >> 8);  // byte mais significativo
   buffer[1] = (byte)scaledValue;         // byte menos significativo
-  Serial.println("");
-  Serial.println(value);
-  Serial.println(buffer[0]);
-  Serial.println(buffer[1]);
 }
 
 /*
@@ -46,7 +42,7 @@ void setup() {
 
   // Inicializa os modulos aceleromentos
   // Try to initialize!
-  if (!mpu2.begin(0x69) || !mpu1.begin(0x68)) {
+  if (!mpu2.begin(0x69) && !mpu1.begin(0x68)) {
     Serial.println("Failed to find MPU6050 chip");
     while (1) {
       delay(10);
@@ -55,15 +51,17 @@ void setup() {
   Serial.println("MPU6050s Found!");
 
   // Sets do sensor 1
+  mpu1.begin(0x68);
   mpu1.setAccelerometerRange(MPU6050_RANGE_8_G);
   mpu1.setGyroRange(MPU6050_RANGE_250_DEG);
   mpu1.setFilterBandwidth(MPU6050_BAND_44_HZ);
 
   // Sets do sensor 2
+  mpu2.begin(0x69);
   mpu2.setAccelerometerRange(MPU6050_RANGE_8_G);
   mpu2.setGyroRange(MPU6050_RANGE_250_DEG);
   mpu2.setFilterBandwidth(MPU6050_BAND_44_HZ);
-  
+
   Serial.println("");
   delay(100);
 
@@ -86,11 +84,15 @@ void setup() {
 
 void loop() {
   /* Get new sensor events with the readings */
-  sensors_event_t a1, g1, temp1;
-  mpu1.getEvent(&a1, &g1, &temp1);
 
   sensors_event_t a2, g2, temp2;
   mpu2.getEvent(&a2, &g2, &temp2);
+
+
+  sensors_event_t a1, g1, temp1;
+  mpu1.getEvent(&a1, &g1, &temp1);
+
+
 
   /* Declaração dos pacotes CAN */
   CAN_frame_t rx_frame;
@@ -114,10 +116,24 @@ void loop() {
     compactFloat(a1.acceleration.y / 9.81, compactedDatay1);
     compactFloat(a1.acceleration.z / 9.81, compactedDataz1);
 
+    Serial.println("Acel 1");
+    Serial.print(a1.acceleration.x / 9.81);
+    Serial.print("\t");
+    Serial.print(a1.acceleration.y / 9.81);
+    Serial.print("\t");
+    Serial.println(a1.acceleration.z / 9.81);
+
     //Dados de aceleracao do modulo 2 já transformado para g
     compactFloat(a2.acceleration.x / 9.81, compactedDatax2);
     compactFloat(a2.acceleration.y / 9.81, compactedDatay2);
     compactFloat(a2.acceleration.z / 9.81, compactedDataz2);
+
+    Serial.println("Acel 2");
+    Serial.print(a2.acceleration.x / 9.81);
+    Serial.print("\t");
+    Serial.print(a2.acceleration.y / 9.81);
+    Serial.print("\t");
+    Serial.println(a2.acceleration.z / 9.81);
 
     /*Manipula os dados que serão enviados*/
     frame_1.FIR.B.FF = CAN_frame_std;
